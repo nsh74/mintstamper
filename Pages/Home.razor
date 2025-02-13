@@ -8,7 +8,7 @@
 <PageTitle>Mintstamper</PageTitle>
 
 <StampInput @bind-ChildData=inputText @bind-ChildData:after=ProcessTextInput />
-<ConversionSettings EmoteString="@EmoteString" EmoteStringChangedEvent="UpdateEmoteString" BreakSettingsChangedEvent="UpdateBreakSettings" />
+<ConversionSettings EmoteString="@EmoteString" EmoteStringChangedEvent="UpdateEmoteString" CensorSettingsChangedEvent="UpdateCensorMode" BreakSettingsChangedEvent="UpdateBreakSettings" />
 <HighlightedStampOutput Stamps=stamps BreakSettings="BreakSettings" />
 
 @code {
@@ -16,13 +16,15 @@
     public string? EmoteString { get; set; } //value received from the url
     private string emoteString => string.IsNullOrEmpty(EmoteString) ? "memboo" : EmoteString; //verified and bound to the ConversionSettings textbox
 
+    private int censorMode = 0; //censor - 0, highlight - 1, ignore - 2
+
     public BreakSettings BreakSettings { get; set; } = new BreakSettings("60", false);
 
     private string inputText { get; set; } = string.Empty;
     private string outputText { get; set; } = string.Empty;
     private List<Stamp> stamps { get; set; } = [];
 
-    private List<string> replacements = new List<string>
+    private List<string> filterList = new List<string>
         {
             //things that might get filtered, most are from this list: https://docs.google.com/spreadsheets/d/1ozg1Cnm6SdtM4M5rATkANAi07xAzYWaKL7HKxyvoHzk
             #region profanities
@@ -282,11 +284,20 @@
         outputText = Regex.Replace(outputText, @"w{3,}", "ww"); //trimming wwwwwws
         outputText = Regex.Replace(outputText, @"W{3,}", "WW"); //trimming WWWWWWs
 
-        //profanity filter
-        outputText = censorService.CensorText(outputText, replacements);
+        //profanity filter (censor mode)
+        if (censorMode == 0)
+        {
+            outputText = censorService.CensorText(outputText, filterList);
+        }
 
         //separating out HBDs, highlighting lines
         stamps = stampParserService.ParseStamps(outputText);
+
+        //profanity filter (highlight mode)
+        if (censorMode == 1)
+        {
+            stamps = censorService.HighlightFilteredWords(stamps, filterList);
+        }
     }
 
     //set EmoteString if no parameter received by url
@@ -294,6 +305,10 @@
 
     //called by event in ConversionSettings upon modifying the textbox content
     private void UpdateEmoteString(string newEmoteString) { EmoteString = newEmoteString; ProcessTextInput(); }
+
+    //called by event in ConversionSettings upon selecting a new censor mode
+    private void UpdateCensorMode(string newCensorMode) {
+        censorMode = Convert.ToInt16(newCensorMode); ProcessTextInput(); }
 
     //called whenever the break checkbox state is changed or a new break length value is set
     private void UpdateBreakSettings(string serializedSettings) {

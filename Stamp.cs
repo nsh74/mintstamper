@@ -12,7 +12,9 @@ public enum StampTypeEnum
 public record Stamp
 (
     string Text,
+    List<string>? HighlightedWords,
     StampTypeEnum StampType,
     bool IsBirthday,
     int TimestampSeconds
 );
+

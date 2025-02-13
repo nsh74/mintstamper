@@ -1,19 +1,21 @@
 ﻿using System.Text.RegularExpressions;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace mintstamper.Services;
 
 public interface ICensorService
 {
-    string CensorText(string text, List<string> replacements);
+    string CensorText(string text, List<string> filterList);
+    List<Stamp> HighlightFilteredWords(List<Stamp> stamps, List<string> filterList);
 }
 
 public class CensorService : ICensorService
 {
-    public string CensorText(string text, List<string> replacements)
+    public string CensorText(string text, List<string> filterList)
     {
-        foreach (var replacement in replacements)
+        foreach (var filteredWord in filterList)
         {
-            string pattern = $@"\b{Regex.Escape(replacement)}\b";
+            string pattern = $@"\b{Regex.Escape(filteredWord)}\b";
             text = Regex.Replace(text, pattern, match => CensorWord(match.Value), RegexOptions.IgnoreCase);
         }
 
@@ -32,5 +34,19 @@ public class CensorService : ICensorService
         }
 
         return word.Remove(0, 1).Insert(0, "*");
+    }
+
+    public List<Stamp> HighlightFilteredWords(List<Stamp> stamps, List<string> filterList)
+    {
+        foreach (var filteredWord in filterList)
+        {
+            foreach (Stamp stamp in stamps){
+                if (stamp.Text.IndexOf(filteredWord, StringComparison.OrdinalIgnoreCase) != -1)
+                {
+
+                }
+            }
+        }
+        return stamps;
     }
 }
